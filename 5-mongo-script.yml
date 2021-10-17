@@ -5,8 +5,8 @@ metadata:
   namespace: mongo-ns
 data:
   change-key-permission.sh: |
-    mkdir /var/lib/mongoKey
-    cat /var/lib/mongoKeyVolume/keyFile > /var/lib/mongoKey/keyFile
-    chown -R mongodb:mongodb /var/lib/mongoKey
-    chmod 400 /var/lib/mongoKey/keyFile
-    chown -R mongodb:mongodb /var/lib/mongoKey/keyFile
+    mkdir /home/mongodb/mongoKey
+    cat /tmp/mongoKey/keyFile > /home/mongodb/mongoKey/keyFile
+    chown -R mongodb:mongodb /home/mongodb/mongoKey
+    chmod 400 /home/mongodb/mongoKey/keyFile
+    chown -R mongodb:mongodb /home/mongodb/mongoKey/keyFile

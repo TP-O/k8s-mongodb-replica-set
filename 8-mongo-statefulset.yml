@@ -15,17 +15,20 @@ spec:
         app: mongo
       namespace: mongo-ns
     spec:
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 10
       containers:
         - name: mongo
           image: mongo
+          workingDir: /home/mongodb
           volumeMounts:
             - name: mongo-key
-              mountPath: /var/lib/mongoKeyVolume
+              mountPath: /tmp/mongoKey
             - name: mongo-script
               mountPath: /home/mongodb/scripts
             - name: mongo-setup
               mountPath: /docker-entrypoint-initdb.d
+            - name: mongo-data
+              mountPath: /data/db
           ports:
             - containerPort: 27017
           env:
@@ -49,7 +52,7 @@ spec:
               docker-entrypoint.sh mongod \
                 --replSet rs0 \
                 --bind_ip_all \
-                --keyFile /var/lib/mongoKey/keyFile
+                --keyFile /home/mongodb/mongoKey/keyFile
       volumes:
         - name: mongo-key
           configMap:
@@ -61,11 +64,12 @@ spec:
           configMap:
             name: mongo-script
             defaultMode: 0755
+        - name: mongo-data
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: mongo-volume-claim
       spec:
-        # storageClassName: "azure-disk"
         resources:
           requests:
             storage: 100Mi
