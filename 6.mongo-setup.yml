@@ -38,5 +38,16 @@ data:
             fi
         done
     else
-        echo "just a secondary node"
+        while true; do
+            sleep 15
+
+            mongosh admin \
+                --username ${MONGO_INITDB_ROOT_USERNAME} \
+                --password ${MONGO_INITDB_ROOT_PASSWORD} \
+                --eval "db.getMongo().setReadPref("primaryPreferred");" 2>/dev/null
+
+            if [ $? == 0 ]; then
+                break
+            fi
+        done
     fi &
