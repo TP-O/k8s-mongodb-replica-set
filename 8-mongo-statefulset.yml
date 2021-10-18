@@ -27,7 +27,7 @@ spec:
               mountPath: /home/mongodb/scripts
             - name: mongo-setup
               mountPath: /docker-entrypoint-initdb.d
-            - name: mongo-data
+            - name: mongo-volume-claim
               mountPath: /data/db
           ports:
             - containerPort: 27017
@@ -63,12 +63,11 @@ spec:
         - name: mongo-script
           configMap:
             name: mongo-script
-            defaultMode: 0755
-        - name: mongo-data
-          emptyDir: {}
+            defaultMode: 0555
   volumeClaimTemplates:
     - metadata:
         name: mongo-volume-claim
+        namespace: mongo-ns
       spec:
         resources:
           requests:

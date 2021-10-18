@@ -5,18 +5,20 @@ metadata:
   namespace: mongo-ns
 data:
   1-create-db-owner.sh: |
-    mongosh ${MONGO_INITDB_DATABASE} \
-      --username ${MONGO_INITDB_ROOT_USERNAME} \
-      --password ${MONGO_INITDB_ROOT_PASSWORD} \
-      --authenticationDatabase admin \
-      --eval "db.createUser({ \
-        user: '${MONGO_USERNAME}', \
-        pwd: '${MONGO_PASSWORD}', \
-        roles: [{ \
-          role: 'dbOwner', \
-          db: '${MONGO_INITDB_DATABASE}' \
-          }] \
-        });"
+    if [ "$K8S_POD_NAME" == "mongo-0" ]; then 
+      mongosh ${MONGO_INITDB_DATABASE} \
+        --username ${MONGO_INITDB_ROOT_USERNAME} \
+        --password ${MONGO_INITDB_ROOT_PASSWORD} \
+        --authenticationDatabase admin \
+        --eval "db.createUser({ \
+          user: '${MONGO_USERNAME}', \
+          pwd: '${MONGO_PASSWORD}', \
+          roles: [{ \
+            role: 'dbOwner', \
+            db: '${MONGO_INITDB_DATABASE}' \
+            }] \
+          });"
+    fi
   2-initiate-replica-set.sh: |
     if [ "$K8S_POD_NAME" == "mongo-0" ]; then 
         members="{_id: 0, host: 'mongo-0.mongo:27017'}"
