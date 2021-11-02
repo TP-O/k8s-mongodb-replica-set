@@ -15,18 +15,22 @@ spec:
         app: mongo
       namespace: mongo-ns
     spec:
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 5
+      securityContext:
+        runAsUser: 0
       containers:
         - name: mongo
           image: mongo
           workingDir: /home/mongodb
           volumeMounts:
-            - name: mongo-key
-              mountPath: /tmp/mongoKey
-            - name: mongo-script
-              mountPath: /home/mongodb/scripts
+            - name: mongo-security
+              mountPath: /home/mongodb/security
+            - name: mongo-config
+              mountPath: /home/mongodb/config
             - name: mongo-setup
               mountPath: /docker-entrypoint-initdb.d
+            - name: mongo-script
+              mountPath: /home/mongodb/scripts
             - name: mongo-volume-claim
               mountPath: /data/db
           ports:
@@ -48,22 +52,25 @@ spec:
             - -c
           args:
             - |
-              /home/mongodb/scripts/change-key-permission.sh && \
-              docker-entrypoint.sh mongod \
-                --replSet rs0 \
-                --bind_ip_all \
-                --keyFile /home/mongodb/mongoKey/keyFile
+              /home/mongodb/scripts/prepare.sh && \
+              /home/mongodb/scripts/start.sh
       volumes:
-        - name: mongo-key
+        - name: mongo-security
           configMap:
-            name: mongo-key
+            name: mongo-security
+            defaultMode: 256 #0400
+        - name: mongo-config
+          configMap:
+            name: mongo-config
+            defaultMode: 292 #0444
         - name: mongo-setup
           configMap:
             name: mongo-setup
+            defaultMode: 365 #0555
         - name: mongo-script
           configMap:
             name: mongo-script
-            defaultMode: 0555
+            defaultMode: 365 #0555
   volumeClaimTemplates:
     - metadata:
         name: mongo-volume-claim
