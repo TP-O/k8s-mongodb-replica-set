@@ -1,16 +1,21 @@
 # MongoDB Replica Set with Kubernetes
 
-## QuickStart
-Clone the source code.
-
+## Clone
 ```bash
 $ git clone git@github.com:devops-config/k8s-mongodb-replica-set.git
+```
 
+## Authenticate by using `key file` or `x.509 certificate`
+
+### Keyfile Security
+
+#### Prepare
+Copy configurations to the root directory.
+```bash
 $ cp ./k8s-mongodb-replica-set/keyfile/* ./k8s-mongodb-replica-set/
 ```
 
-### Keyfile Security
-Generate a key.
+#### Generate a key
 ```bash
 $ openssl rand -base64 756
 
@@ -34,17 +39,104 @@ udpuXzsBozqP2CS+FtLjKeEW/W3q7m7mROG7nN8ah1dSZLqI
 EXAMPLE-OUTPUT
 ```
 
-Copy the above command's output then paste it to `data.keyFile` in the file `4-mongo-security.yml`.
+Copy the above command's output then paste it into `data.keyFile` in the `4-mongo-security.yml` file.
 
-Apply the configurations.
+#### Start replica set
 ```bash
 $ kubectl apply -f ./k8s-mongodb-replica-set/
 ```
 
+#### Connect to mongodb inside pod
+```bash
+$ kubectl exec -it mongo-0 -n mongo-ns -- bash
+
+$ mongosh \
+    --username ${MONGO_INITDB_ROOT_USERNAME} \
+    --password ${MONGO_INITDB_ROOT_PASSWORD} \
+    --authenticationDatabase 'admin'
+```
+
 ### X.509 Certificate
-Updating...
+
+#### Prepare
+Copy configurations to the root directory.
+```bash
+$ cp ./k8s-mongodb-replica-set/x.509/* ./k8s-mongodb-replica-set/
+```
+
+#### Generate root CA
+```bash
+$ openssl req -sha256 -new -x509 -days 365 \
+    -subj "/CN=mongo/O=WW" \
+    -out root-ca.crt \
+    -keyout root-ca.key
+```
+
+Note: Remember the password is required by the above command.
+
+Copy the contents of `root-ca.crt` and `root-ca.key` then paste them into `data.root-ca.crt` and `data.root-ca.key` in the `4-mongo-security.yml` file respectively.
+
+#### Create `.PEM` file for admin
+```bash
+$ openssl req -sha256 -new -nodes \
+    -subj "/CN=admin" \
+    -out admin.csr \
+    -keyout admin.key
+
+$ openssl x509 -req -sha256 -days 365 \
+    -in  admin.csr \
+    -CA root-ca.crt \
+    -CAkey root-ca.key \
+    -CAcreateserial \
+    -out admin.crt
+
+$ cat admin.crt admin.key > admin.pem
+```
+In the second command, openssl asks you for the password you just entered when creating the root CA.
+
+Copy the content of `admin.pem` then paste it into `data.admin.pem` in the `4-mongo-security.yml` file.
+
+#### Create `.PEM` file for specific user
+```bash
+$ openssl req -sha256 -new -nodes \
+    -subj "/CN=ww_user" \
+    -out ww_user.csr \
+    -keyout ww_user.key
+
+$ openssl x509 -req -sha256 -days 365 \
+    -in  ww_user.csr \
+    -CA root-ca.crt \
+    -CAkey root-ca.key \
+    -CAcreateserial \
+    -out ww_user.crt
+
+$ cat ww_user.crt ww_user.key > ww_user.pem
+```
+
+Note: If you change the `CN`'s value, you must also change `data.MONGO_USERNAME` in the file `2-mongo-env.yml` to the same.
+
+Use this `.pem` file and `root-ca.crt` to connection to mongodb with specific roles set up by the admin.
+
+#### Start replica set
+```bash
+$ kubectl apply -f ./k8s-mongodb-replica-set/
+``` 
+
+#### Connect to mongodb inside pod
+```bash
+$ kubectl exec -it mongo-0 -n mongo-ns -- bash
+
+$ mongosh \
+    --tls \
+    --tlsCertificateKeyFile admin.pem \
+    --tlsCAFile root-ca.crt \
+    --authenticationDatabase '$external' \
+    --authenticationMechanism MONGODB-X509 \
+    mongo-0.mongo
+```
 
 ## References:
 - [https://www.spectrocloud.com/blog/kustomize-your-way-to-mongodb-replicaset/](https://www.spectrocloud.com/blog/kustomize-your-way-to-mongodb-replicaset/)
 - [https://docs.mongodb.com/manual/tutorial/configure-x509-client-authentication/#std-label-x509-client-authentication](https://docs.mongodb.com/manual/tutorial/configure-x509-client-authentication/#std-label-x509-client-authentication)
 - [https://goteleport.com/blog/securing-mongodb/](https://goteleport.com/blog/securing-mongodb/)
+- [https://docs.mongodb.com/manual/tutorial/configure-x509-client-authentication/](https://docs.mongodb.com/manual/tutorial/configure-x509-client-authentication/)

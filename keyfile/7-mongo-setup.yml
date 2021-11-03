@@ -47,25 +47,4 @@ data:
                 fi
             } || echo . #Keep while loop from exting if command fails 
         done
-    else
-        s=0
-
-        while [ $s -eq 0 ]; do
-            sleep 10
-
-            echo -e "\n\n[Mongo-Setup] Making secondary readable...\n\n"
-
-            {
-                mongosh admin \
-                    --username ${MONGO_INITDB_ROOT_USERNAME} \
-                    --password ${MONGO_INITDB_ROOT_PASSWORD} \
-                    --eval "db.getMongo().setReadPref("primaryPreferred");"
-
-                if [ $? == 0 ]; then
-                    s=1
-
-                    echo -e "\n\n[Mongo-Setup] Secondary is now readable!\n\n"
-                fi
-            } || echo . #Keep while loop from exting if command fails 
-        done
     fi &
