@@ -8,7 +8,3 @@ data:
     cat /home/mongodb/security/keyFile > /home/mongodb/keyFile
     chmod 400 /home/mongodb/keyFile
     chown -R mongodb:mongodb /home/mongodb/keyFile
-  start.sh: |
-    docker-entrypoint.sh mongod \
-      --replSet rs0 \
-      --config /home/mongodb/config/mongo.conf

@@ -16,21 +16,39 @@ spec:
       namespace: mongo-ns
     spec:
       terminationGracePeriodSeconds: 5
-      securityContext:
-        runAsUser: 0
+      initContainers:
+        - name: prepare
+          image: mongo
+          securityContext:
+            runAsUser: 0
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - /home/mongodb/scripts/prepare.sh
+          volumeMounts:
+            - name: mongo-dir
+              mountPath: /home/mongodb
+            - name: mongo-security
+              mountPath: /home/mongodb/security
+            - name: mongo-script
+              mountPath: /home/mongodb/scripts
+          env:
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
       containers:
         - name: mongo
           image: mongo
           workingDir: /home/mongodb
           volumeMounts:
-            - name: mongo-security
-              mountPath: /home/mongodb/security
+            - name: mongo-dir
+              mountPath: /home/mongodb
             - name: mongo-config
               mountPath: /home/mongodb/config
             - name: mongo-setup
               mountPath: /docker-entrypoint-initdb.d
-            - name: mongo-script
-              mountPath: /home/mongodb/scripts
             - name: mongo-volume-claim
               mountPath: /data/db
           ports:
@@ -52,9 +70,12 @@ spec:
             - -c
           args:
             - |
-              /home/mongodb/scripts/prepare.sh && \
-              /home/mongodb/scripts/start.sh
+              docker-entrypoint.sh mongod \
+                --replSet rs0 \
+                --config /home/mongodb/config/mongo.conf
       volumes:
+        - name: mongo-dir
+          emptyDir: {}
         - name: mongo-security
           configMap:
             name: mongo-security
